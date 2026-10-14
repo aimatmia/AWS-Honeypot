@@ -1,0 +1,141 @@
+import json
+from decimal import Decimal
+from urllib.parse import unquote_plus
+
+import boto3
+
+s3 = boto3.client('s3')
+table = boto3.resource('dynamodb').Table('CowrieLogs')
+
+'''EVENTS = {
+    'cowrie.session.connect',
+    'cowrie.login.success',
+    'cowrie.login.failed',
+    'cowrie.command.input',
+    'cowrie.command.failed',
+    'cowrie.session.file_download',
+    'cowrie.session.closed',
+}'''
+
+
+def to_item(ev):
+    event_id = ev['eventid']
+    item = {
+        'event_id': ev['eventid'],
+        'timestamp': ev['timestamp'],
+        'session_id': ev['session'],
+        'src_ip': ev.get('src_ip', 'unknown'),
+    }
+    if event_id.startswith('cowrie.login.'):
+
+        item['username'] = ev['username']
+        item['password'] = ev['password']
+
+    elif event_id.startswith('cowrie.command.'):
+
+        item['input'] = ev['input']
+
+    elif event_id == 'cowrie.session.file_download':
+
+        item['url'] = ev['url']
+        item['shasum'] = ev['shasum']
+
+    elif event_id == 'cowrie.session.closed':
+
+        # Newer Cowrie logs duration_ms
+        if 'duration_ms' in ev:
+
+            item['duration_ms'] = ev['duration_ms']
+
+        # Older Cowrie logs duration in seconds
+        elif 'duration' in ev:
+
+            item['duration_ms'] = int(
+                Decimal(str(ev['duration'])) * 1000
+            )
+
+    return item
+
+def lambda_handler(event, context):
+
+    total = 0
+
+    print("EVENTS")
+    print(event)
+
+    for record in event.get('Records', []):
+
+        bucket = record['s3']['bucket']['name']
+
+        key = unquote_plus(
+            record['s3']['object']['key']
+        )
+
+        body = s3.get_object(
+            Bucket=bucket,
+            Key=key
+        )['Body']
+
+        # S3 object is a JSON document
+        content = body.read().decode('utf-8')
+
+        try:
+
+            data = json.loads(
+                content,
+                parse_float=Decimal
+            )
+
+        except json.JSONDecodeError as e:
+
+            print(f"Invalid JSON in {key}: {e}")
+            continue
+
+        '''if not session_id:
+
+            print(f"No session_id found in {key}")
+            continue'''
+
+        count = 0
+
+        with table.batch_writer(
+            overwrite_by_pkeys=[
+                'event_id',
+                'timestamp'
+            ]
+        ) as batch:
+
+            # Events are inside the "events" array
+            for ev in data.get('events', []):
+
+                print("EVENT")
+                print(ev)
+                try:
+
+                    item = to_item(ev)
+
+                    print("DYNAMODB ITEM")
+                    print(item)
+
+                    batch.put_item(
+                        Item=item
+                    )
+
+                    count += 1
+
+                except Exception as e:
+
+                    print(
+                        f"Error processing event: {e}"
+                    )
+
+        total += count
+
+        print(
+            f"Events written from {key}: {count}"
+        )
+
+    return {
+        'statusCode': 200,
+        'processed': total
+    }
