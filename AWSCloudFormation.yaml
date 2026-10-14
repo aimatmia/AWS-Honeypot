@@ -9,10 +9,6 @@ Parameters:
     Type: String
     Description: First admin IP allowed to reach port 5555 (e.g. 1.2.3.4/32)
     AllowedPattern: ^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$
-  AdminCidr2:
-    Type: String
-    Description: Second admin IP allowed to reach port 5555 (e.g. 1.2.3.4/32)
-    AllowedPattern: ^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$
   InstanceConnectPrefixListId:
     Type: String
     Description: AWS-managed EC2 Instance Connect prefix list for this region
@@ -136,11 +132,6 @@ Resources:
           FromPort: 5555
           ToPort: 5555
           CidrIp: !Ref AdminCidr1
-        - Description: Port 5555 from admin IP 2
-          IpProtocol: tcp
-          FromPort: 5555
-          ToPort: 5555
-          CidrIp: !Ref AdminCidr2
       SecurityGroupEgress:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
