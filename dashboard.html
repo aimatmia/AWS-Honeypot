@@ -149,7 +149,7 @@
 </div>
 
 <script>
-// ---------- charts ----------
+//charts
 {% if status == 'ok' %}
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = '#334155';
@@ -177,7 +177,7 @@ function barChart(id, pairs, color) {
 barChart('cmdChart', {{ top_commands | tojson }}, '#a78bfa');
 barChart('ipChart',  {{ top_ips | tojson }}, '#34d399');
 
-// ---------- session inspector ----------
+//session inspector
 document.getElementById('session-pick').addEventListener('change', async (e) => {
   const table = document.getElementById('session-table');
   const body = table.querySelector('tbody');
@@ -199,7 +199,7 @@ document.getElementById('session-pick').addEventListener('change', async (e) => 
 });
 {% endif %}
 
-// ---------- chatbot ----------
+//chatbot
 const chatBox = document.getElementById('chat-box');
 const chatLog = document.getElementById('chat-log');
 document.getElementById('chat-toggle').addEventListener('click', () => chatBox.classList.toggle('open'));
