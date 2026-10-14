@@ -80,7 +80,7 @@ def _blank(s: pd.Series) -> pd.Series:
 
 
 def _normalize(df: pd.DataFrame) -> pd.DataFrame:
-    """Merge input into command, and split old 'user:pass' login rows."""
+    """Merge  into command, and split old 'user:pass' login rows."""
     is_login = df["event_id"].astype(str).str.contains("login", case=False, na=False)
     inp = df["input"].fillna("").astype(str).str.strip()
 
